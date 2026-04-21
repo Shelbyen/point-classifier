@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "single-file-engine/Engine.hpp"
 
 
 class Point {
@@ -14,6 +15,7 @@ private:
     std::vector<Point> points;
     size_t currentBatchStart = 0;
     bool shouldClose = true;    // CHANGE IF DONE WITH LOOP
+    Engine engine = Engine();
 
 void processInput();
 void updateVisualization();
