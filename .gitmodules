@@ -1,0 +1,6 @@
+[submodule "machine-learning-lib"]
+	path = machine-learning-lib
+	url = https://github.com/Shelbyen/machine-learning-lib
+[submodule "single-file-engine"]
+	path = single-file-engine
+	url = https://github.com/Shelbyen/single-file-engine.git
