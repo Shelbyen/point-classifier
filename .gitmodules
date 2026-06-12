@@ -4,3 +4,6 @@
 [submodule "single-file-engine"]
 	path = single-file-engine
 	url = https://github.com/Shelbyen/single-file-engine.git
+[submodule "imgui"]
+	path = imgui
+	url = https://github.com/ocornut/imgui.git
