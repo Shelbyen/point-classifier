@@ -12,6 +12,12 @@ struct Point
     float y;
     int targetClass;
     Point(float x, float y, int targetClass) : x(x), y(y), targetClass(targetClass) {}
+
+    void normalize(float maxValue)
+    {
+        x = (x / maxValue + 1) / 2;
+        y = (y / maxValue + 1) / 2;
+    }
 };
 
 struct BgUniforms
@@ -153,9 +159,25 @@ private:
 
         auto data = readCSV(fileName);
         data.erase(data.begin());
+        float max_abs = 0;
+
         for (const auto &row : data)
         {
-            points.push_back(Point((std::stof(row[0]) / 10 + 1) / 2, (std::stof(row[1]) / 10 + 1) / 2, std::stoi(row[2])));
+            float x = std::stof(row[0]);
+            float y = std::stof(row[1]);
+            int pointClass = std::stoi(row.back());
+            max_abs = max(max_abs, max(abs(x), abs(y)));
+            points.push_back(Point(x, y, pointClass));
+        }
+        std::cout << max_abs;
+        normalizePoints(max_abs);
+    }
+
+    void normalizePoints(float maxValue)
+    {
+        for (auto &point : points)
+        {
+            point.normalize(maxValue);
         }
     }
 
@@ -295,6 +317,17 @@ public:
         };
     }
 
+    void updateMetrics()
+    {
+        static int metricCounter = 0;
+        if (++metricCounter >= 144 && !samples.empty()) {
+            metricCounter = 0;
+            auto m = net.evaluate(samples);
+            debugPanel.f1Score = m.f1;
+            debugPanel.avgLoss = m.avgLoss;
+        }
+    }
+
     void mainLoop()
     {
         updatePoints();
@@ -328,6 +361,7 @@ public:
             }
 
             updateVisualization();
+            updateMetrics();
             render();
         }
 

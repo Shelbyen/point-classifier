@@ -14,6 +14,9 @@ public:
     float learningRate = 0.1f;
     int epoch = 5;
 
+    float f1Score = 0.0f;
+    float avgLoss = 0.0f;
+
     void onGui() override
     {
         ImGui::Begin("Debug");
@@ -31,6 +34,10 @@ public:
 
         ImGui::SliderFloat("Learning rate", &learningRate, 0, 0.1);
         ImGui::SliderInt("Epoch per frame", &epoch, -15, 50);
+
+        ImGui::Separator();
+        ImGui::Text("F1 Score:    %.4f", f1Score);
+        ImGui::Text("Avg Loss:    %.4f", avgLoss);
 
         ImGui::End();
     }
