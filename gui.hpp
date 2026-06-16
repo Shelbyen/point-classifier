@@ -3,7 +3,6 @@
 #include <functional>
 #include "single-file-engine/Engine.hpp"
 
-
 class DebugPanel : public IGuiLayer
 {
 public:
@@ -12,6 +11,9 @@ public:
     {
     }
     int selectedClass = 0;
+    float learningRate = 0.1f;
+    int epoch = 5;
+
     void onGui() override
     {
         ImGui::Begin("Debug");
@@ -24,6 +26,9 @@ public:
 
         if (ImGui::Button("Delete All"))
             clearPoints();
+
+        ImGui::SliderFloat("Learning rate", &learningRate, 0, 1);
+        ImGui::SliderInt("Epoch per frame", &epoch, -15, 15);
 
         ImGui::End();
     }
