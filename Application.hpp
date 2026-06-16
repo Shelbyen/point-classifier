@@ -3,6 +3,8 @@
 #include "gui.hpp"
 #include "single-file-engine/Engine.hpp"
 #include <vector>
+#include <algorithm>
+#include <random>
 #include "machine-learning-lib/NeuralNet.h"
 #include "utils.hpp"
 
@@ -28,7 +30,7 @@ struct BgUniforms
     float _pad;
 };
 
-static const int ARCHITECTURE[] = {2, 8, 8, 3}; // input, hidden..., output
+static const int ARCHITECTURE[] = {2, 16, 3, 3};
 static const int ARCH_SIZE = sizeof(ARCHITECTURE) / sizeof(ARCHITECTURE[0]);
 
 static const int WEIGHTS_COUNT = []()
@@ -128,7 +130,7 @@ static void bgUpdate(void *userdata)
 class Application
 {
 private:
-    static constexpr int BATCH_SIZE = 32;
+    static constexpr int BATCH_SIZE = 8;
     std::vector<Point> points = {
         Point(0.2f, 0.2f, 1),
         Point(0.8f, 0.8f, 1),
@@ -198,11 +200,11 @@ private:
             int width = 0, height = 0;
             glfwGetFramebufferSize(engine.window, &width, &height);
             points.push_back(Point((xpos / width), (ypos / height), debugPanel.selectedClass));
-            printf("%s\n", "click!");
             mousePress = false;
 
             updatePoints();
         }
+
         if (glfwGetKey(engine.window, GLFW_KEY_D) == GLFW_PRESS)
         {
             keyPress = true;
@@ -218,20 +220,66 @@ private:
 
     void updateVisualization()
     {
-        size_t n = net.weightsCount();
-
         net.exportWeights(bgState.weights);
     }
+
     void render()
     {
         engine.drawFrame();
     }
 
-    void train(const std::vector<TrainingSample> &batch, double learningRate, size_t epochs)
+    void trainSingleSample()
     {
-        for (const auto &sample : batch)
+        if (samples.empty())
+            return;
+
+        if (currentBatchStart >= samples.size())
         {
+            static std::random_device rd;
+            static std::mt19937 g(rd());
+            std::shuffle(samples.begin(), samples.end(), g);
+            currentBatchStart = 0;
+        }
+
+        const auto &sample = samples[currentBatchStart++];
             net.train(sample.input, sample.target);
+    }
+
+    void trainBatch()
+    {
+        for (int i = 0; i < BATCH_SIZE; ++i)
+        {
+            trainSingleSample();
+        }
+    }
+
+    void processTraining()
+    {
+        if (samples.empty())
+            return;
+
+        int speed = debugPanel.epoch;
+
+        if (speed > 0)
+        {
+            for (int i = 0; i < speed; i++)
+            {
+                trainBatch();
+            }
+            frameEpochCounter = 0;
+        }
+        else if (speed == 0)
+        {
+            trainSingleSample();
+            frameEpochCounter = 0;
+        }
+        else
+        {
+            if (++frameEpochCounter >= std::abs(speed))
+            {
+                trainSingleSample();
+                frameEpochCounter = 0;
+            }
         }
     }
 
@@ -243,9 +291,10 @@ public:
 
     Application(std::string fileName)
     {
-        engine = Engine();
         getCSVDataset(fileName);
+        Application();
     }
+
     void init()
     {
         engine.initWindow();
@@ -261,6 +310,7 @@ public:
 
     void initNet()
     {
+        net = NeuralNet();
         for (int i = 0; i < ARCH_SIZE - 1; i++)
         {
             Layer l = Layer(ARCHITECTURE[i], ARCHITECTURE[i + 1]);
@@ -273,54 +323,54 @@ public:
 
     void deleteLastPoint()
     {
+        if (!points.empty())
+    {
         points.pop_back();
-        samples.pop_back();
         updatePoints();
     }
+    }
+
     void clearPoints()
     {
         points.clear();
-        samples.clear();
         updatePoints();
     }
 
     void updatePoints()
     {
         engine.figures.clear();
+        samples.clear();
+        currentBatchStart = 0;
+
         for (auto &p : points)
         {
             TrainingSample s;
             s.input = Tensor(std::vector<double>{p.x, p.y});
 
+            float r = 0, g = 0, b = 0;
             switch (p.targetClass)
             {
             case 0:
-            {
-                engine.figures.push_back(Circle(p.x, p.y, 0.05, 1, 0, 0));
-                s.target = Tensor(std::vector<double>{1.0, 0.0, 0.0});
+                r = 1;
                 break;
-            }
             case 1:
-            {
-                engine.figures.push_back(Circle(p.x, p.y, 0.05, 0, 1, 0));
-                s.target = Tensor(std::vector<double>{0.0, 1.0, 0.0});
+                g = 1;
                 break;
-            }
             case 2:
-            {
-                engine.figures.push_back(Circle(p.x, p.y, 0.05, 0, 0, 1));
-                s.target = Tensor(std::vector<double>{0.0, 0.0, 1.0});
+                b = 1;
                 break;
             }
-            }
+            s.target = Tensor(std::vector<double>{r, g, b});
+            engine.figures.push_back(Circle(p.x, p.y, 0.05, r, g, b));
             samples.push_back(s);
-        };
+        }
     }
 
     void updateMetrics()
     {
         static int metricCounter = 0;
-        if (++metricCounter >= 144 && !samples.empty()) {
+        if (++metricCounter >= 144 && !samples.empty())
+        {
             metricCounter = 0;
             auto m = net.evaluate(samples);
             debugPanel.f1Score = m.f1;
@@ -334,31 +384,7 @@ public:
         while (!glfwWindowShouldClose(engine.window))
         {
             processInput();
-
-            if (!points.empty())
-            {
-                if (debugPanel.epoch < 0 && debugPanel.epoch + frameEpochCounter == 0 || debugPanel.epoch == 0)
-                {
-                    TrainingSample r = *select_randomly(samples.begin(), samples.end());
-                    net.train(r.input, r.target);
-                    frameEpochCounter = 0;
-                }
-                else if (debugPanel.epoch < 0)
-                {
-                    frameEpochCounter++;
-                }
-                else
-                {
-                    for (int i = 0; i < debugPanel.epoch; i++)
-                    {
-                        TrainingSample r = *select_randomly(samples.begin(), samples.end());
-                        net.train(r.input, r.target);
-                    }
-                }
-
-                // Tensor out = net.predict(Tensor(std::vector<double>{0.5, 0.5}));
-                // out.print();
-            }
+            processTraining();
 
             updateVisualization();
             updateMetrics();
@@ -366,18 +392,6 @@ public:
         }
 
         engine.cleanup();
-
         getchar();
-    }
-
-    std::vector<Point> getNextBatch(int size)
-    {
-        std::vector<Point> batch;
-        for (int i = 0; i < size; ++i)
-        {
-            batch.push_back(points[currentBatchStart]);
-            currentBatchStart = (currentBatchStart + 1) % points.size();
-        }
-        return batch;
     }
 };
