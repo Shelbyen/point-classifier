@@ -4,7 +4,7 @@
 
 
 int main() {
-    Application app = Application();
+    Application app = Application("dataset1.csv");
     app.init();
     app.mainLoop();
 }

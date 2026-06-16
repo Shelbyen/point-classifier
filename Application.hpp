@@ -22,16 +22,16 @@ struct BgUniforms
     float _pad;
 };
 
-static const int ARCHITECTURE[] = {2, 5, 5, 3};  // input, hidden..., output
+static const int ARCHITECTURE[] = {2, 8, 8, 3}; // input, hidden..., output
 static const int ARCH_SIZE = sizeof(ARCHITECTURE) / sizeof(ARCHITECTURE[0]);
 
-static const int WEIGHTS_COUNT = []() {
+static const int WEIGHTS_COUNT = []()
+{
     int total = 0;
     for (int i = 0; i < ARCH_SIZE - 1; i++)
-        total += ARCHITECTURE[i] * ARCHITECTURE[i+1] + ARCHITECTURE[i+1];
+        total += ARCHITECTURE[i] * ARCHITECTURE[i + 1] + ARCHITECTURE[i + 1];
     return total;
 }();
-
 
 struct BgPushConstants
 {
@@ -67,7 +67,7 @@ static void bgSetup(VkDescriptorSetLayout *outLayout, uint32_t *outPushConstantS
     *outPushConstantSize = sizeof(BgPushConstants);
 
     s->push.layer_count = ARCH_SIZE - 1;
-    s->push.input_size  = ARCHITECTURE[0];
+    s->push.input_size = ARCHITECTURE[0];
     s->push.output_size = ARCHITECTURE[ARCH_SIZE - 1];
     for (int i = 0; i < ARCH_SIZE - 2; i++)
         s->push.hidden_sizes[i] = ARCHITECTURE[i + 1];
@@ -105,7 +105,7 @@ static void bgBind(VkCommandBuffer cmd, VkPipelineLayout layout, void *userdata)
 
 static void bgUpdate(void *userdata)
 {
-    BgState* s = (BgState*)userdata;
+    BgState *s = (BgState *)userdata;
     memcpy(s->mapped, s->weights, WEIGHTS_COUNT * sizeof(float));
 
     VkMappedMemoryRange range = {};
@@ -123,10 +123,12 @@ class Application
 {
 private:
     static constexpr int BATCH_SIZE = 32;
-    std::vector<Point> points = {    Point(0.2f, 0.2f, 1),
-    Point(0.8f, 0.8f, 1),
-    Point(0.8f, 0.2f, 0),
-    Point(0.2f, 0.8f, 0), };
+    std::vector<Point> points = {
+        Point(0.2f, 0.2f, 1),
+        Point(0.8f, 0.8f, 1),
+        Point(0.8f, 0.2f, 0),
+        Point(0.2f, 0.8f, 0),
+    };
     Engine engine;
 
     DebugPanel debugPanel = DebugPanel([this]()
@@ -144,6 +146,18 @@ private:
     std::vector<TrainingSample> samples;
 
     int frameEpochCounter = 0;
+
+    void getCSVDataset(std::string &fileName)
+    {
+        points.clear();
+
+        auto data = readCSV(fileName);
+        data.erase(data.begin());
+        for (const auto &row : data)
+        {
+            points.push_back(Point((std::stof(row[0]) / 10 + 1) / 2, (std::stof(row[1]) / 10 + 1) / 2, std::stoi(row[2])));
+        }
+    }
 
     void processInput()
     {
@@ -191,9 +205,9 @@ private:
         engine.drawFrame();
     }
 
-    void train(const std::vector<TrainingSample>& batch, double learningRate, size_t epochs)
+    void train(const std::vector<TrainingSample> &batch, double learningRate, size_t epochs)
     {
-        for (const auto& sample : batch)
+        for (const auto &sample : batch)
         {
             net.train(sample.input, sample.target);
         }
@@ -203,6 +217,12 @@ public:
     Application()
     {
         engine = Engine();
+    }
+
+    Application(std::string fileName)
+    {
+        engine = Engine();
+        getCSVDataset(fileName);
     }
     void init()
     {
@@ -215,7 +235,6 @@ public:
 
         engine.pushLayer(&debugPanel);
         initNet();
-
     }
 
     void initNet()
@@ -251,22 +270,26 @@ public:
             TrainingSample s;
             s.input = Tensor(std::vector<double>{p.x, p.y});
 
-            switch (p.targetClass) {
-                case 0: {
-                    engine.figures.push_back(Circle(p.x, p.y, 0.05, 1, 0, 0));
-                    s.target = Tensor(std::vector<double>{1.0, 0.0, 0.0});
-                    break;
-                }
-                case 1: {
-                    engine.figures.push_back(Circle(p.x, p.y, 0.05, 0, 1, 0));
-                    s.target = Tensor(std::vector<double>{0.0, 1.0, 0.0});
-                    break;
-                }
-                case 2: {
-                    engine.figures.push_back(Circle(p.x, p.y, 0.05, 0, 0, 1));
-                    s.target = Tensor(std::vector<double>{0.0, 0.0, 1.0});
-                    break;
-                }
+            switch (p.targetClass)
+            {
+            case 0:
+            {
+                engine.figures.push_back(Circle(p.x, p.y, 0.05, 1, 0, 0));
+                s.target = Tensor(std::vector<double>{1.0, 0.0, 0.0});
+                break;
+            }
+            case 1:
+            {
+                engine.figures.push_back(Circle(p.x, p.y, 0.05, 0, 1, 0));
+                s.target = Tensor(std::vector<double>{0.0, 1.0, 0.0});
+                break;
+            }
+            case 2:
+            {
+                engine.figures.push_back(Circle(p.x, p.y, 0.05, 0, 0, 1));
+                s.target = Tensor(std::vector<double>{0.0, 0.0, 1.0});
+                break;
+            }
             }
             samples.push_back(s);
         };
@@ -286,17 +309,19 @@ public:
                     TrainingSample r = *select_randomly(samples.begin(), samples.end());
                     net.train(r.input, r.target);
                     frameEpochCounter = 0;
-                } else if (debugPanel.epoch < 0)
+                }
+                else if (debugPanel.epoch < 0)
                 {
                     frameEpochCounter++;
-                } else
+                }
+                else
                 {
-                    for (int i = 0; i < debugPanel.epoch; i++) {
+                    for (int i = 0; i < debugPanel.epoch; i++)
+                    {
                         TrainingSample r = *select_randomly(samples.begin(), samples.end());
                         net.train(r.input, r.target);
                     }
                 }
-                
 
                 // Tensor out = net.predict(Tensor(std::vector<double>{0.5, 0.5}));
                 // out.print();
