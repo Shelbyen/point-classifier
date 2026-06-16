@@ -21,7 +21,7 @@ void main()
     );
 
     vec2 uv  = corners[gl_VertexIndex];   // [-1, 1] внутри bounding quad
-    vec2 pos = vec2(pc.cx, pc.cy) + uv * pc.radius;
+    vec2 pos = (vec2(pc.cx, pc.cy) * 2 - 1) + uv * pc.radius;
 
     fragUV      = uv;
     gl_Position = vec4(pos, 0.0, 1.0);
