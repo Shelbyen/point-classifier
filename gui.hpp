@@ -7,7 +7,7 @@ class DebugPanel : public IGuiLayer
 {
 public:
     // TODO: Remove app
-    DebugPanel(std::function<void()> d, std::function<void()> c) : deleteLastPoint(d), clearPoints(c)
+    DebugPanel(std::function<void()> d, std::function<void()> c, std::function<void()> n) : deleteLastPoint(d), clearPoints(c), reloadNetwork(n)
     {
     }
     int selectedClass = 0;
@@ -31,6 +31,9 @@ public:
 
         if (ImGui::Button("Delete All"))
             clearPoints();
+        
+        if (ImGui::Button("Reload Network"))
+            reloadNetwork();
 
         ImGui::SliderFloat("Learning rate", &learningRate, 0, 0.1);
         ImGui::SliderInt("Epoch per frame", &epoch, -15, 50);
@@ -45,4 +48,5 @@ public:
 private:
     std::function<void()> deleteLastPoint;
     std::function<void()> clearPoints;
+    std::function<void()> reloadNetwork;
 };

@@ -140,8 +140,11 @@ private:
     Engine engine;
 
     DebugPanel debugPanel = DebugPanel([this]()
-                                       { deleteLastPoint(); }, [this]()
-                                       { clearPoints(); });
+                                       { deleteLastPoint(); },
+                                       [this]()
+                                       { clearPoints(); },
+                                       [this]()
+                                       { initNet(); });
 
     size_t currentBatchStart = 0;
     bool shouldClose = false;
@@ -242,7 +245,7 @@ private:
         }
 
         const auto &sample = samples[currentBatchStart++];
-            net.train(sample.input, sample.target);
+        net.train(sample.input, sample.target);
     }
 
     void trainBatch()
@@ -324,10 +327,10 @@ public:
     void deleteLastPoint()
     {
         if (!points.empty())
-    {
-        points.pop_back();
-        updatePoints();
-    }
+        {
+            points.pop_back();
+            updatePoints();
+        }
     }
 
     void clearPoints()
