@@ -141,10 +141,6 @@ private:
 
     NeuralNet net;
 
-    Layer l1 = Layer(2, 3);
-    Layer l2 = Layer(3, 3);
-    Layer l3 = Layer(3, 3);
-
     std::vector<TrainingSample> samples;
 
     int frameEpochCounter = 0;
@@ -255,18 +251,23 @@ public:
             TrainingSample s;
             s.input = Tensor(std::vector<double>{p.x, p.y});
 
-            if (p.targetClass == 0)
-            {
-                engine.figures.push_back(Circle(p.x, p.y, 0.05, 1, 0, 0));
-                s.target = Tensor(std::vector<double>{1.0, 0.0, 0.0});
+            switch (p.targetClass) {
+                case 0: {
+                    engine.figures.push_back(Circle(p.x, p.y, 0.05, 1, 0, 0));
+                    s.target = Tensor(std::vector<double>{1.0, 0.0, 0.0});
+                    break;
+                }
+                case 1: {
+                    engine.figures.push_back(Circle(p.x, p.y, 0.05, 0, 1, 0));
+                    s.target = Tensor(std::vector<double>{0.0, 1.0, 0.0});
+                    break;
+                }
+                case 2: {
+                    engine.figures.push_back(Circle(p.x, p.y, 0.05, 0, 0, 1));
+                    s.target = Tensor(std::vector<double>{0.0, 0.0, 1.0});
+                    break;
+                }
             }
-                
-            if (p.targetClass == 1)
-            {
-                engine.figures.push_back(Circle(p.x, p.y, 0.05, 0, 1, 0));
-                s.target = Tensor(std::vector<double>{0.0, 1.0, 0.0});
-            }
-
             samples.push_back(s);
         };
     }

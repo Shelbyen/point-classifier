@@ -20,6 +20,8 @@ public:
         ImGui::RadioButton("Class a", &selectedClass, 0);
         ImGui::SameLine();
         ImGui::RadioButton("Class b", &selectedClass, 1);
+        ImGui::SameLine();
+        ImGui::RadioButton("Class c", &selectedClass, 2);
 
         if (ImGui::Button("Delete last"))
             deleteLastPoint();
@@ -27,8 +29,8 @@ public:
         if (ImGui::Button("Delete All"))
             clearPoints();
 
-        ImGui::SliderFloat("Learning rate", &learningRate, 0, 1);
-        ImGui::SliderInt("Epoch per frame", &epoch, -15, 15);
+        ImGui::SliderFloat("Learning rate", &learningRate, 0, 0.1);
+        ImGui::SliderInt("Epoch per frame", &epoch, -15, 50);
 
         ImGui::End();
     }
